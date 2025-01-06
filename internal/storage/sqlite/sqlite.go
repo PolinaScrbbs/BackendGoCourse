@@ -3,8 +3,8 @@ package sqlite
 import (
 	"database/sql"
 	"fmt"
-
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
+	"test_backend/internal/storage"
 )
 
 type Storage struct {
@@ -41,7 +41,7 @@ func NewStorage(storagePath string) (*Storage, error) {
 	return &Storage{db: db}, nil
 }
 
-func (s *Storage) SaveUrl(UrlToSave, string, alias string) (int64, error) {
+func (s *Storage) SaveUrl(UrlToSave string, alias string) (int64, error) {
 	const op = "storage.sqlite.SaveUrl"
 
 	stmt, err := s.db.Prepare("INSERT INTO url(url, alias) VALUES(?, ?)")
@@ -51,6 +51,10 @@ func (s *Storage) SaveUrl(UrlToSave, string, alias string) (int64, error) {
 
 	res, err := stmt.Exec(UrlToSave, alias)
 	if err != nil {
+		if err.Error() == "UNIQUE constraint failed: url.alias" {
+			return 0, fmt.Errorf("%s: %w", op, storage.ErrURLExists)
+		}
+
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
 
@@ -59,5 +63,48 @@ func (s *Storage) SaveUrl(UrlToSave, string, alias string) (int64, error) {
 		return 0, fmt.Errorf("%s: failed to get last insert id: %w", op, err)
 	}
 
-	return id, err
+	return id, nil
+}
+
+func (s *Storage) GetUrl(id int64) (string, error) {
+	const op = "storage.sqlite.GetUrl"
+
+	stmt, err := s.db.Prepare("SELECT url FROM url WHERE id = ?")
+	if err != nil {
+		return "", fmt.Errorf("%s: %w", op, err)
+	}
+	defer stmt.Close()
+
+	res, err := stmt.Query(id)
+	if err != nil {
+		return "", fmt.Errorf("%s: %w", op, err)
+	}
+	defer res.Close()
+
+	if !res.Next() {
+		return "", storage.ErrURLNotFound
+	}
+
+	var url string
+	if err := res.Scan(&url); err != nil {
+		return "", fmt.Errorf("%s: failed to scan result: %w", op, err)
+	}
+
+	return url, nil
+}
+
+func (s *Storage) DeleteUrl(id int64) error {
+	const op = "storage.sqlite.DeleteUrl"
+
+	stmt, err := s.db.Prepare("DELETE FROM url WHERE id = ?")
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	_, err = stmt.Exec(id)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
 }

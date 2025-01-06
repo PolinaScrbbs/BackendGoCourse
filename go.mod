@@ -5,6 +5,7 @@ go 1.23.4
 require (
 	github.com/BurntSushi/toml v1.2.1 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
+	github.com/go-chi/chi/v5 v5.2.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/ilyakaznacheev/cleanenv v1.5.0 // indirect
