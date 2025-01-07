@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"test_backend/internal/config"
+	mwLogger "test_backend/internal/http-server/middleware/logger"
 	"test_backend/internal/lib/logger/sl"
 	"test_backend/internal/storage/sqlite"
 )
@@ -36,6 +37,9 @@ func main() {
 	router.Use(middleware.RequestID)
 	router.Use(middleware.RealIP)
 	router.Use(middleware.Logger)
+	router.Use(mwLogger.New(log))
+	router.Use(middleware.Recoverer)
+	router.Use(middleware.URLFormat)
 
 }
 
